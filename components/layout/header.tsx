@@ -50,7 +50,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
           <Link href="/dashboard" className="flex items-center transition-opacity hover:opacity-80">
-            <Image src="/logo.svg" alt="Signalist" width={130} height={30} className="h-6 sm:h-7 w-auto" priority />
+            <Image src="/hummus.png" alt="HUMMUS" width={130} height={30} className="h-6 sm:h-7 w-auto" priority />
           </Link>
         </div>
 
@@ -93,7 +93,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                   className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full transition-smooth hover:ring-2 hover:ring-yellow-400/30"
                 >
                   <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-gray-600">
-                    <AvatarImage src={user.avatarUrl || "/placeholder-user.png"} alt={user.firstName} />
+                    <AvatarImage src={user.avatarUrl || "/public/hummus.png"} alt={user.firstName} />
                     <AvatarFallback className="bg-gray-700 text-gray-400 text-xs sm:text-sm">
                       {getInitials()}
                     </AvatarFallback>
