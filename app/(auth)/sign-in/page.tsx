@@ -45,7 +45,7 @@ export default function SignInPage() {
     <Card className="bg-gray-800 border-gray-600">
       <CardHeader className="text-center space-y-4">
         <Link href="/" className="inline-block mx-auto">
-          <Image src="/logo.svg" alt="Signalist" width={150} height={35} className="h-8 w-auto" />
+          <Image src="/logo.svg" alt="" width={150} height={35} className="h-8 w-auto" />
         </Link>
         <div>
           <CardTitle className="text-2xl text-gray-300">Welcome back</CardTitle>

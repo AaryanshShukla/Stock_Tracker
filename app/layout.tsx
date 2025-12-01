@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Signalist - Stock Market Tracker",
+  title: "Stock Market Tracker",
   description: "Track real-time stock prices, get personalized alerts and explore detailed company insights.",
     generator: 'v0.app'
 }
