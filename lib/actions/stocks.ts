@@ -2,6 +2,7 @@
 
 import { finnhubClient } from "@/lib/finnhub-client"
 import { MOCK_STOCKS, MARKET_INDICES, CHART_DATA } from "@/lib/mock-data"
+import { generateRealtimeChartData } from "@/lib/chart-utils"
 import type { Stock, MarketIndex, ChartDataPoint } from "@/types"
 
 // Default symbols to fetch
@@ -21,7 +22,6 @@ export async function fetchStockQuotes(symbols: string[] = DEFAULT_STOCK_SYMBOLS
   const { configured } = finnhubClient.checkConfiguration()
 
   if (!configured) {
-    // Return mock data if API not configured
     return {
       data: MOCK_STOCKS.filter((s) => symbols.includes(s.symbol)),
       error: null,
@@ -32,18 +32,21 @@ export async function fetchStockQuotes(symbols: string[] = DEFAULT_STOCK_SYMBOLS
   try {
     const quotes = await finnhubClient.getBatchQuotes(symbols)
 
-    // Transform to Stock type
     const stocks: Stock[] = quotes.map((quote) => ({
       symbol: quote.symbol,
       name: quote.name,
       price: quote.price,
       change: quote.change,
       changePercent: quote.changePercent,
-      volume: 0, // Not available in basic quote
+      volume: 0,
       marketCap: "N/A",
       peRatio: 0,
       high52Week: quote.high,
       low52Week: quote.low,
+      open: quote.open,
+      previousClose: quote.previousClose,
+      dayHigh: quote.high,
+      dayLow: quote.low,
       exchange: "NASDAQ",
       sector: "Technology",
       industry: "Technology",
@@ -55,8 +58,7 @@ export async function fetchStockQuotes(symbols: string[] = DEFAULT_STOCK_SYMBOLS
       isUsingMockData: false,
     }
   } catch (error) {
-    console.error("[v0] Error fetching stock quotes:", error)
-    // Fall back to mock data on error
+    console.error("Error fetching stock quotes:", error)
     return {
       data: MOCK_STOCKS.filter((s) => symbols.includes(s.symbol)),
       error: error instanceof Error ? error.message : "Failed to fetch stock data",
@@ -82,25 +84,21 @@ export async function fetchMarketIndices(): Promise<FetchResult<MarketIndex[]>> 
   try {
     const quotes = await finnhubClient.getBatchQuotes(INDEX_ETF_SYMBOLS)
 
-    // Map ETF quotes to market index format
-    const indexMap: Record<string, { name: string; symbol: string }> = {
-      SPY: { name: "S&P 500", symbol: "SPX" },
-      QQQ: { name: "NASDAQ", symbol: "NDX" },
-      DIA: { name: "DOW 30", symbol: "DJI" },
+    const indexMap: Record<string, { name: string; symbol: string; multiplier: number }> = {
+      SPY: { name: "S&P 500", symbol: "SPX", multiplier: 10 },
+      QQQ: { name: "NASDAQ", symbol: "NDX", multiplier: 45 },
+      DIA: { name: "DOW 30", symbol: "DJI", multiplier: 100 },
     }
 
     const indices: MarketIndex[] = quotes.map((quote) => {
       const indexInfo = indexMap[quote.symbol]
+      const multiplier = indexInfo?.multiplier || 1
       return {
         name: indexInfo?.name || quote.name,
         symbol: indexInfo?.symbol || quote.symbol,
-        value: quote.price,
-        change: quote.change,
+        value: Number((quote.price * multiplier).toFixed(2)),
+        change: Number((quote.change * multiplier).toFixed(2)),
         changePercent: quote.changePercent,
-        // Approximate actual index values from ETF prices
-        ...(quote.symbol === "SPY" && { value: quote.price * 10 }),
-        ...(quote.symbol === "QQQ" && { value: quote.price * 45 }),
-        ...(quote.symbol === "DIA" && { value: quote.price * 100 }),
       }
     })
 
@@ -110,7 +108,7 @@ export async function fetchMarketIndices(): Promise<FetchResult<MarketIndex[]>> 
       isUsingMockData: false,
     }
   } catch (error) {
-    console.error("[v0] Error fetching market indices:", error)
+    console.error("Error fetching market indices:", error)
     return {
       data: MARKET_INDICES,
       error: error instanceof Error ? error.message : "Failed to fetch market indices",
@@ -121,13 +119,29 @@ export async function fetchMarketIndices(): Promise<FetchResult<MarketIndex[]>> 
 
 /**
  * Fetch OHLC candle data for charts
+ * Since Finnhub candles require premium, we generate realistic data based on current price
  */
 export async function fetchStockCandles(
   symbol: string,
   range: "1D" | "1W" | "1M" | "3M" | "1Y" = "1M",
 ): Promise<FetchResult<ChartDataPoint[]>> {
-  // Finnhub candle endpoint requires premium subscription
-  // Always use mock chart data for now - quotes endpoint still works for real-time prices
+  const { configured } = finnhubClient.checkConfiguration()
+
+  // Try to get current price to generate realistic chart
+  if (configured) {
+    try {
+      const quote = await finnhubClient.getQuote(symbol)
+      const chartData = generateRealtimeChartData(quote.price, quote.changePercent, range)
+      return {
+        data: chartData,
+        error: null,
+        isUsingMockData: false, // Data is based on real current price
+      }
+    } catch (error) {
+      console.error("Error generating chart data:", error)
+    }
+  }
+
   return {
     data: CHART_DATA,
     error: null,
@@ -164,6 +178,10 @@ export async function fetchStockDetail(symbol: string): Promise<FetchResult<Stoc
       peRatio: 0,
       high52Week: quote.high,
       low52Week: quote.low,
+      open: quote.open,
+      previousClose: quote.previousClose,
+      dayHigh: quote.high,
+      dayLow: quote.low,
       exchange: "NASDAQ",
       sector: "Technology",
       industry: "Technology",
@@ -175,12 +193,65 @@ export async function fetchStockDetail(symbol: string): Promise<FetchResult<Stoc
       isUsingMockData: false,
     }
   } catch (error) {
-    console.error("[v0] Error fetching stock detail:", error)
+    console.error("Error fetching stock detail:", error)
     const mockStock = MOCK_STOCKS.find((s) => s.symbol === symbol)
     return {
       data: mockStock || null,
       error: error instanceof Error ? error.message : "Failed to fetch stock",
       isUsingMockData: true,
     }
+  }
+}
+
+/**
+ * Fetch prices for multiple symbols (for portfolio calculation)
+ */
+export async function fetchPortfolioPrices(
+  symbols: string[],
+): Promise<Record<string, { price: number; change: number; changePercent: number }>> {
+  const { configured } = finnhubClient.checkConfiguration()
+
+  if (!configured || symbols.length === 0) {
+    // Return mock prices
+    const mockPrices: Record<string, { price: number; change: number; changePercent: number }> = {}
+    MOCK_STOCKS.forEach((stock) => {
+      if (symbols.includes(stock.symbol)) {
+        mockPrices[stock.symbol] = {
+          price: stock.price,
+          change: stock.change,
+          changePercent: stock.changePercent,
+        }
+      }
+    })
+    return mockPrices
+  }
+
+  try {
+    const quotes = await finnhubClient.getBatchQuotes(symbols)
+    const prices: Record<string, { price: number; change: number; changePercent: number }> = {}
+
+    quotes.forEach((quote) => {
+      prices[quote.symbol] = {
+        price: quote.price,
+        change: quote.change,
+        changePercent: quote.changePercent,
+      }
+    })
+
+    return prices
+  } catch (error) {
+    console.error("Error fetching portfolio prices:", error)
+    // Fall back to mock
+    const mockPrices: Record<string, { price: number; change: number; changePercent: number }> = {}
+    MOCK_STOCKS.forEach((stock) => {
+      if (symbols.includes(stock.symbol)) {
+        mockPrices[stock.symbol] = {
+          price: stock.price,
+          change: stock.change,
+          changePercent: stock.changePercent,
+        }
+      }
+    })
+    return mockPrices
   }
 }

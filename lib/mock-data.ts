@@ -345,6 +345,7 @@ export const mockPortfolio: Portfolio = {
 // Navigation items
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
+  { href: "/portfolio", label: "Portfolio", icon: "Wallet" },
   { href: "/watchlist", label: "Watchlist", icon: "Star" },
   { href: "/alerts", label: "Alerts", icon: "Bell" },
   { href: "/news", label: "News", icon: "Newspaper" },

@@ -89,12 +89,15 @@ export interface Portfolio {
 
 // Individual holding in portfolio
 export interface PortfolioHolding {
-  stock: Stock
+  symbol: string
+  name: string
   shares: number
   avgCost: number
-  currentValue: number
-  gainLoss: number
-  gainLossPercent: number
+  currentPrice?: number
+  currentValue?: number
+  gainLoss?: number
+  gainLossPercent?: number
+  purchaseDate: string
 }
 
 // Company info for detail page

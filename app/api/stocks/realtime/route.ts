@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { finnhubClient } from "@/lib/finnhub-client"
 import { MOCK_STOCKS, MARKET_INDICES, CHART_DATA } from "@/lib/mock-data"
+import { generateRealtimeChartData } from "@/lib/chart-utils"
 import type { Stock, MarketIndex } from "@/types"
 
 const DEFAULT_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA", "NFLX", "ORCL", "CRM"]
@@ -37,38 +38,43 @@ export async function GET() {
       peRatio: 0,
       high52Week: quote.high,
       low52Week: quote.low,
+      open: quote.open,
+      previousClose: quote.previousClose,
+      dayHigh: quote.high,
+      dayLow: quote.low,
       exchange: "NASDAQ",
       sector: "Technology",
       industry: "Technology",
     }))
 
     // Map ETF quotes to indices
-    const indexMap: Record<string, { name: string; symbol: string }> = {
-      SPY: { name: "S&P 500", symbol: "SPX" },
-      QQQ: { name: "NASDAQ", symbol: "NDX" },
-      DIA: { name: "DOW 30", symbol: "DJI" },
+    const indexMap: Record<string, { name: string; symbol: string; multiplier: number }> = {
+      SPY: { name: "S&P 500", symbol: "SPX", multiplier: 10 },
+      QQQ: { name: "NASDAQ", symbol: "NDX", multiplier: 45 },
+      DIA: { name: "DOW 30", symbol: "DJI", multiplier: 100 },
     }
 
     const indices: MarketIndex[] = indexQuotes.map((quote) => {
       const indexInfo = indexMap[quote.symbol]
-      let value = quote.price
-      if (quote.symbol === "SPY") value = quote.price * 10
-      if (quote.symbol === "QQQ") value = quote.price * 45
-      if (quote.symbol === "DIA") value = quote.price * 100
-
+      const multiplier = indexInfo?.multiplier || 1
       return {
         name: indexInfo?.name || quote.name,
         symbol: indexInfo?.symbol || quote.symbol,
-        value,
-        change: quote.change,
+        value: Number((quote.price * multiplier).toFixed(2)),
+        change: Number((quote.change * multiplier).toFixed(2)),
         changePercent: quote.changePercent,
       }
     })
 
+    const firstStock = stockQuotes[0]
+    const chartData = firstStock
+      ? generateRealtimeChartData(firstStock.price, firstStock.changePercent, "1M")
+      : CHART_DATA
+
     return NextResponse.json({
       stocks,
       indices,
-      chartData: CHART_DATA, // Charts still use mock data (premium endpoint)
+      chartData,
       isUsingMockData: false,
     })
   } catch (error) {

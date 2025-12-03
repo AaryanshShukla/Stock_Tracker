@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { NAV_ITEMS } from "@/lib/mock-data"
-import { LayoutDashboard, Search, Newspaper, Bell } from "lucide-react"
+import { LayoutDashboard, Search, Newspaper, Bell, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StarIcon } from "@/components/icons/star-icon"
 
@@ -14,6 +14,7 @@ const iconMap: Record<string, React.ElementType> = {
   Search,
   Newspaper,
   Bell,
+  Wallet,
 }
 
 export function NavItems() {

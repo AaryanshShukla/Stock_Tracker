@@ -4,12 +4,13 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Newspaper, Settings, HelpCircle, X, Bell } from "lucide-react"
+import { LayoutDashboard, Newspaper, Settings, HelpCircle, X, Bell, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StarIcon } from "@/components/icons/star-icon"
 
 const sidebarItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/portfolio", label: "Portfolio", icon: Wallet },
   { href: "/watchlist", label: "Watchlist", icon: "star" },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/news", label: "News", icon: Newspaper },
